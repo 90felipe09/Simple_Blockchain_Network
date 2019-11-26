@@ -4,11 +4,18 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+
 import datetime as d
 import json
 import socket as s
 import base64
+import hashlib as h
 
+DIFICULDADE = 10
+ALVO = 2 ** (256 - DIFICULDADE)
+MAX_NONCE = 2 ** 32
 
 PORT_NUMBER = 8080
 IP_BOOK = 'localhost'
@@ -34,7 +41,7 @@ def FETCH_request():
 
     soc.connect((IP_BOOK, PORT_NUMBER))
     soc.send(bytes(BSP_JSON, 'utf-8'))
-    msg = soc.recv(1024)
+    msg = soc.recv(4096)
     soc.close()
     return json.loads(msg)
 
@@ -46,34 +53,65 @@ def pegar_bloco():
         return response['block'], response['public_key']
 
 def minerar_bloco(bloco):
-    print(1)
+    nonce = 0
+    while (not(check_validity(nonce, bloco))):
+        nonce += 1
+    return nonce
+
+
+def check_validity(nonce, block_to_solve):
+    block_to_solve['mined_by'] = public_key
+    block_to_solve['nonce'] = nonce
+    hasher = h.sha256()
+
+    if (nonce > MAX_NONCE):
+        return False
+
+    hasher.update(
+        str(nonce).encode('utf-8') +
+        str(block_to_solve['value']).encode('utf-8') +
+        str(block_to_solve['last_hash']).encode('utf-8') +
+        str(block_to_solve['datetime']).encode('utf-8') +
+        str(block_to_solve['from']).encode('utf-8') +
+        str(block_to_solve['to']).encode('utf-8') +
+        str(block_to_solve['signature']).encode('utf-8') +
+        str(block_to_solve['mined_by']).encode('utf-8') +
+        str(block_to_solve['block_no']).encode('utf-8')
+    )
+
+    block_hash = hasher.hexdigest()
+    if (int(block_hash, 16) <= ALVO):
+        block_to_solve['hash'] = block_hash
+        return True
+    else:
+        return False
+
+def encrypt(msg, public_key):
+    public_key = public_key.encode('utf-8')
+    public_key = base64.b64decode(public_key)
+    public_key_object = RSA.import_key(public_key)
+    public_key_object = PKCS1_OAEP.new(public_key_object)
+    crypt = public_key_object.encrypt(str(msg).encode('utf-8'))
+    return crypt
 
 def SOLVE_request(nonce, book_key):
     BSP = {}
     BSP['method'] = "SOLVE"
     BSP['from'] = public_key
 
-    pbk = book_key.encode('utf-8')
-    pbk = base64.b64decode(pbk)
-    pbk = load_public_key(pbk)
-
-    nonce_crypt = pbk.encrypt(
-        str(nonce),
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
-    )
+    nonce_crypt = encrypt(nonce, book_key)
+    nonce_crypt = base64.b64encode(nonce_crypt)
+    nonce_crypt = nonce_crypt.decode('utf-8')
 
     BSP['nonce'] = nonce_crypt
+    print(BSP)
     BSP_JSON = json.dumps(BSP, ensure_ascii=False)
 
     soc = s.socket(s.AF_INET, s.SOCK_STREAM)
 
     soc.connect((IP_BOOK, PORT_NUMBER))
     soc.send(bytes(BSP_JSON, 'utf-8'))
-    msg = soc.recv(2048)
+    msg = soc.recv(4096)
     soc.close()
     return json.loads(msg)
 
@@ -87,6 +125,7 @@ print("Insira a sua chave privada")
 private_key = input()
 while (True):
     bloco, book_key = pegar_bloco()
-    bloco_calculado = minerar_bloco(bloco)
-    print(enviar_resposta(bloco_calculado, book_key))
-    break # Remove Break ao funcionar
+    if (bloco != ''):
+        bloco_calculado = minerar_bloco(bloco)
+        print(enviar_resposta(bloco_calculado, book_key))
+        print("Bloco Minerado às {}".format(d.date.today()))

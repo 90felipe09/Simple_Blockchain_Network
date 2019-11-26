@@ -23,7 +23,6 @@ def sign(message, key):
                          padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                                      salt_length = padding.PSS.MAX_LENGTH),
                          hashes.SHA256())
-    print(signature)
     return signature
 
 def check(message, public_key, signature):
@@ -52,36 +51,35 @@ def LIST_request(carteira):
     BSP['from'] = carteira
     BSP_JSON = json.dumps(BSP, ensure_ascii=False)
 
-    print(BSP_JSON)
     soc = s.socket(s.AF_INET, s.SOCK_STREAM)
 
     soc.connect((IP_BOOK, PORT_NUMBER))
     soc.send(bytes(BSP_JSON, 'utf-8'))
-    msg = soc.recv(2048)
+    msg = soc.recv(4096)
+    msg = json.loads(msg)
+    LIST = []
+    while(msg['frag_flag'] == 1):
+        LIST.append(msg)
+        soc.send(bytes("ACK", 'utf-8'))
+        msg = soc.recv(4096)
+        msg = json.loads(msg)
+    LIST.append(msg)
     soc.close()
-    return json.loads(msg)
-
-LIST = LIST_request('0')
-
-print(LIST)
+    return LIST
 
 def calcular_saldo(LIST, carteira):
-    blocos = LIST['blocks']
+    blocos = []
+    for i in LIST:
+        blocos.append(i['block'])
     saldo = 0
     for i in blocos:
         if(i['from'] == carteira):
             saldo -= float(i['value'])
         if(i['to'] == carteira):
             saldo += float(i['value'])
+        if (i['mined_by'] == carteira):
+            saldo += 1
     return saldo
-
-saldo = calcular_saldo(LIST, '0')
-print(saldo)
-
-private_key, carteira = criar_carteira()
-
-print(carteira)
-print(private_key)
 
 def deserialize_key(private_key):
     deserialized_key = private_key.private_bytes(encoding=serialization.Encoding.PEM,
@@ -89,9 +87,6 @@ def deserialize_key(private_key):
                                                  encryption_algorithm=serialization.NoEncryption())
 
     return deserialized_key
-
-deserialized_key = deserialize_key(private_key)
-print(deserialized_key)
 
 def load_private_key(deserialized_key):
     private_key = serialization.load_pem_private_key(
@@ -101,8 +96,6 @@ def load_private_key(deserialized_key):
 
     return private_key
 
-print(load_private_key(deserialized_key))
-
 def deserialize_public_key(public_key):
     deserialized_key = public_key.public_bytes(encoding=serialization.Encoding.PEM,
                                                  format=serialization.PublicFormat.SubjectPublicKeyInfo)
@@ -111,11 +104,6 @@ def deserialize_public_key(public_key):
 def load_public_key(deserialized_public_key):
     public_key = serialization.load_pem_public_key(deserialized_public_key, default_backend())
     return public_key
-
-carteira = deserialize_public_key(carteira)
-print(carteira)
-
-print(load_public_key(carteira))
 
 def SEND_request(bloco):
     BSP = {}
@@ -127,26 +115,24 @@ def SEND_request(bloco):
 
     soc.connect((IP_BOOK, PORT_NUMBER))
     soc.send(bytes(BSP_JSON, 'utf-8'))
-    msg = soc.recv(1024)
+    msg = soc.recv(4096)
     soc.close()
     return json.loads(msg)
 
 def pagar(valor, carteira, autor, key):
-    print(key)
     key = key.encode('utf-8')
-    print(key)
     key = base64.b64decode(key)
     key = load_private_key(key)
     bloco = {}
     bloco['datetime'] = str(d.date.today())
     bloco['value'] = str(valor)
-    bloco['to'] = carteira#str(carteira)# mesmo para to
-    bloco['from'] = autor#str(autor)
+    bloco['to'] = carteira
+    bloco['from'] = autor
     block_to_sign = json.dumps(bloco,ensure_ascii=False).encode('utf-8')
     bloco['signature'] = (base64.b64encode(sign(block_to_sign, key))).decode('utf-8')
+    print(bloco)
     return SEND_request(bloco)
 
-#print(pagar(0,0,carteira,private_key))
 
 while (True):
     try:

@@ -9,6 +9,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+
 import socket as s
 import threading as t
 import datetime as d
@@ -16,9 +19,14 @@ import os
 import csv
 import json
 import base64
+import hashlib as h
 
 book_path_to_solve = "to_solve.csv"
 book_path_solved = "solved.csv"
+
+DIFICULDADE = 10
+ALVO = 2 ** (256 - DIFICULDADE)
+MAX_NONCE = 2 ** 32
 
 # Crypt Methods
 def deserialize_key(private_key):
@@ -65,16 +73,14 @@ def deserialize_public_key(public_key):
     return deserialized_key
 
 # TEST
-def decrypt(msg):
-    result = private_key.decrypt(
-        msg,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
-    )
-    return result
+def decrypt (crypt, private_key):
+    private_key = deserialize_key(private_key)
+    print(private_key)
+
+    private_key_object = RSA.import_key(private_key)
+    private_key_object = PKCS1_OAEP.new(private_key_object)
+    msg = private_key_object.decrypt(crypt)
+    return msg
 
 #Work
 def create_book():
@@ -87,9 +93,9 @@ def create_book():
             w.write(header_to_solve)
 
     if (book_path_solved not in files):
-        header_solved = "block_no;datetime;from;to;value;last_hash;block_hash;signature;nonce\n"
+        header_solved = "block_no;datetime;from;to;value;last_hash;block_hash;signature;nonce;mined_by\n"
         today = str(d.date.today())
-        first_element = "0;{};0;0;0;0;0;0;0\n".format(today)
+        first_element = "0;{};0;0;0;0;0;0;0;0\n".format(today)
         header_solved += first_element
         with open(book_path_solved, 'w', encoding="utf8") as w:
             w.write(header_solved)
@@ -97,13 +103,23 @@ def create_book():
 create_book()
 
 def insert_to_solve(block):
-    with open(book_path_solved, 'r', encoding="utf8") as r:
+    with open(book_path_to_solve, 'r', encoding="utf8") as r:
         csv_reader = csv.DictReader(r, delimiter=';')
         last_entry = ""
         for i in csv_reader:
             last_entry = i
-        blockno = last_entry['block_no']
-        lastHash = last_entry['block_hash']
+        if (last_entry == ""):
+            with open(book_path_solved, 'r', encoding="utf8") as r:
+                csv_reader = csv.DictReader(r, delimiter=';')
+                last_entry = ""
+                for i in csv_reader:
+                    last_entry = i
+                blockno = str(int(last_entry['block_no']) + 1)
+                lastHash = last_entry['block_hash']
+        else:
+            blockno = str(int(last_entry['block_no'] + 1))
+            lastHash = last_entry['block_hash']
+
     entry = (
             blockno + ";" +
             block['datetime'] + ";" +
@@ -134,18 +150,25 @@ def delete_to_solve():
                 outfile.write(line)
 
 def get_block_to_solve():
+    with open(book_path_solved, 'r', encoding="utf8") as r:
+        csv_reader = csv.DictReader(r, delimiter=';')
+        last_entry = ""
+        for i in csv_reader:
+            last_entry = i
+        lastHash = last_entry['block_hash']
+
     with open(book_path_to_solve, 'r', encoding="utf8") as r:
         block_to_solve_raw = r.readline()
         block_to_solve_raw = r.readline()
         block_to_solve_raw = block_to_solve_raw.split(';')
         block_to_solve = {}
         block_to_solve['block_no'] = block_to_solve_raw[0]
-        block_to_solve['datetime'] = block_to_solve_raw[0]
-        block_to_solve['from'] = block_to_solve_raw[0]
-        block_to_solve['to'] = block_to_solve_raw[0]
-        block_to_solve['value'] = block_to_solve_raw[0]
-        block_to_solve['last_hash'] = block_to_solve_raw[0]
-        block_to_solve['signature'] = block_to_solve_raw[0]
+        block_to_solve['datetime'] = block_to_solve_raw[1]
+        block_to_solve['from'] = block_to_solve_raw[2]
+        block_to_solve['to'] = block_to_solve_raw[3]
+        block_to_solve['value'] = block_to_solve_raw[4]
+        block_to_solve['last_hash'] = lastHash
+        block_to_solve['signature'] = block_to_solve_raw[6]
         return block_to_solve
 
 def list_blocks_solved(user):
@@ -153,7 +176,7 @@ def list_blocks_solved(user):
     with open(book_path_solved, 'r', encoding="utf8") as r:
         csv_reader = csv.DictReader(r, delimiter=';')
         for i in csv_reader:
-            if (i['from'] == user or i['to'] == user):
+            if (i['from'] == user or i['to'] == user or i['mined_by'] == user):
                 block_solved = {}
                 block_solved['block_no'] = i['block_no']
                 block_solved['datetime'] = i['datetime']
@@ -164,6 +187,7 @@ def list_blocks_solved(user):
                 block_solved['block_hash'] = i['block_hash']
                 block_solved['signature'] = i['signature']
                 block_solved['nonce'] = i['nonce']
+                block_solved['mined_by'] = i['mined_by']
                 blocks.append(block_solved)
     return blocks
 
@@ -176,8 +200,9 @@ def insert_solved(block):
             block['value'] + ";" +
             block['last_hash'] + ";" +
             block['block_hash'] + ";" +
-            block['signature'] + ";" +
-            block['nonce'] +
+            block['signature'].replace('\n', '') + ";" +
+            block['nonce'] + ';' +
+            block['mined_by'] +
             '\n'
     )
     with open(book_path_solved, 'a', encoding="utf8") as w:
@@ -186,11 +211,18 @@ def insert_solved(block):
 
 #Response Methods
 def response_LIST(response_code, blocks):
-    BSP = {}
-    BSP['response_code'] = response_code
-    BSP['blocks'] = blocks
-    BSP_JSON = json.dumps(BSP, ensure_ascii=False)
-    return BSP_JSON
+    BSP_LIST = []
+    for i in blocks:
+        BSP = {}
+        BSP['response_code'] = response_code
+        BSP['block'] = i
+        if (i == blocks[-1]):
+            BSP['frag_flag'] = 0
+        else:
+            BSP['frag_flag'] = 1
+        BSP_JSON = json.dumps(BSP, ensure_ascii=False)
+        BSP_LIST.append(BSP_JSON)
+    return BSP_LIST
 
 def response_SEND(response_code):
     BSP = {}
@@ -202,7 +234,10 @@ def response_SEND(response_code):
 def response_FETCH(response_code):
     BSP = {}
     BSP['response_code'] = response_code
-    BSP['block'] = get_block_to_solve()
+    try:
+        BSP['block'] = get_block_to_solve()
+    except:
+        BSP['block'] = ""
     deserialized_public_key = deserialize_public_key(public_key)
     ch = base64.b64encode(deserialized_public_key).decode('utf-8')
     BSP['public_key'] = ch
@@ -234,12 +269,36 @@ def check_authenticity(block):
     return (check(block_to_check,loaded_public_key,signature))
 
 # TEST
-def check_validity(nonce):
-    print(1)
+def check_validity(nonce, miner):
+    block_to_solve = get_block_to_solve()
+    print(miner)
+    block_to_solve['mined_by'] = miner
+    block_to_solve['nonce'] = str(nonce)
+    hasher = h.sha256()
 
-# TEST
-def premiar_minerador(nonce, minerador):
-    print(2)
+    if (nonce > MAX_NONCE):
+        return False
+
+    hasher.update(
+        str(nonce).encode('utf-8') +
+        str(block_to_solve['value']).encode('utf-8') +
+        str(block_to_solve['last_hash']).encode('utf-8') +
+        str(block_to_solve['datetime']).encode('utf-8') +
+        str(block_to_solve['from']).encode('utf-8') +
+        str(block_to_solve['to']).encode('utf-8') +
+        str(block_to_solve['signature']).encode('utf-8') +
+        str(block_to_solve['mined_by']).encode('utf-8') +
+        str(block_to_solve['block_no']).encode('utf-8')
+    )
+
+    block_hash = hasher.hexdigest()
+    if (int(block_hash, 16) <= ALVO):
+        block_to_solve['block_hash'] = block_hash
+        insert_solved(block_to_solve)
+        delete_to_solve()
+        return True
+    else:
+        return False
 
 soc = s.socket(s.AF_INET, s.SOCK_STREAM)
 
@@ -247,7 +306,7 @@ PORT_NUMBER = 8080
 
 soc.bind(('localhost', PORT_NUMBER))
 def thread_socket(clSocket):
-    msg = clSocket.recv(2048).decode('utf-8')
+    msg = clSocket.recv(4096).decode('utf-8')
     message = json.loads(msg)
     msg_method = message['method']
     if (msg_method == "LIST"):
@@ -257,18 +316,16 @@ def thread_socket(clSocket):
             BSP_JSON = response_LIST(0, blocks_list)
         except:
             BSP_JSON = response_LIST(1, "")
-        print(0)
     # TEST
     if (msg_method == "SOLVE"):
-        print(1)
-        nonce = decrypt(message['nonce'])
-        if(check_validity(nonce)):
-            premiar_minerador(nonce, message['from'])
+        nonce = base64.b64decode(message['nonce'])
+        nonce = decrypt(nonce, private_key)
+        nonce = int(nonce.decode('utf-8'))
+        if(check_validity(nonce, message['from'])):
             BSP_JSON = response_SOLVE(0)
         else:
-            BSP_JSON = response_SOLVE(0)
+            BSP_JSON = response_SOLVE(1)
     if (msg_method == "SEND"):
-        print(2)
         bloco = message["block"]
         try:
             if (check_authenticity(bloco)):
@@ -280,14 +337,21 @@ def thread_socket(clSocket):
             BSP_JSON = response_SEND(1)
     # TEST
     if (msg_method == "FETCH"):
-        print(3)
         try:
             BSP_JSON = response_FETCH(0)
         except:
             BSP_JSON = response_FETCH(1)
 
-    clSocket.send(bytes(BSP_JSON, "utf-8"))
-    clSocket.close()
+    if (msg_method != "LIST"):
+        clSocket.send(bytes(BSP_JSON, "utf-8"))
+        clSocket.close()
+    else:
+        for i in BSP_JSON:
+            print(i)
+            clSocket.send(bytes(i, "utf-8"))
+            clSocket.recv(4096).decode('utf-8')
+        clSocket.close()
+
     
 while(True):
     soc.listen(1)
