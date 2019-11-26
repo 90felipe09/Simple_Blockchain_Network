@@ -1,3 +1,13 @@
+"""
+Projeto de Redes de Computadores I - PCS 3614
+Rede de Blockchain
+
+Módulo: Miner.py
+
+Felipe Kenzo Shiraishi - 10262700
+Tiago Santa Maria R. Marto - 9004289
+"""
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
@@ -104,7 +114,6 @@ def SOLVE_request(nonce, book_key):
     nonce_crypt = nonce_crypt.decode('utf-8')
 
     BSP['nonce'] = nonce_crypt
-    print(BSP)
     BSP_JSON = json.dumps(BSP, ensure_ascii=False)
 
     soc = s.socket(s.AF_INET, s.SOCK_STREAM)

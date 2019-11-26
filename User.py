@@ -1,3 +1,14 @@
+"""
+Projeto de Redes de Computadores I - PCS 3614
+Rede de Blockchain
+
+Módulo: User.py
+
+Felipe Kenzo Shiraishi - 10262700
+Tiago Santa Maria R. Marto - 9004289
+"""
+
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
@@ -130,7 +141,6 @@ def pagar(valor, carteira, autor, key):
     bloco['from'] = autor
     block_to_sign = json.dumps(bloco,ensure_ascii=False).encode('utf-8')
     bloco['signature'] = (base64.b64encode(sign(block_to_sign, key))).decode('utf-8')
-    print(bloco)
     return SEND_request(bloco)
 
 

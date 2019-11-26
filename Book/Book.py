@@ -1,4 +1,9 @@
 """
+Projeto de Redes de Computadores I - PCS 3614
+Rede de Blockchain
+
+Módulo: Book.py
+
 Felipe Kenzo Shiraishi - 10262700
 Tiago Santa Maria R. Marto - 9004289
 """
@@ -75,7 +80,6 @@ def deserialize_public_key(public_key):
 # TEST
 def decrypt (crypt, private_key):
     private_key = deserialize_key(private_key)
-    print(private_key)
 
     private_key_object = RSA.import_key(private_key)
     private_key_object = PKCS1_OAEP.new(private_key_object)
@@ -130,7 +134,6 @@ def insert_to_solve(block):
             block['signature']  +
             '\n'
     )
-    print(entry)
     with open(book_path_to_solve, 'a', encoding="utf8") as w:
         w.write(entry)
 
@@ -271,7 +274,6 @@ def check_authenticity(block):
 # TEST
 def check_validity(nonce, miner):
     block_to_solve = get_block_to_solve()
-    print(miner)
     block_to_solve['mined_by'] = miner
     block_to_solve['nonce'] = str(nonce)
     hasher = h.sha256()
@@ -347,7 +349,6 @@ def thread_socket(clSocket):
         clSocket.close()
     else:
         for i in BSP_JSON:
-            print(i)
             clSocket.send(bytes(i, "utf-8"))
             clSocket.recv(4096).decode('utf-8')
         clSocket.close()
