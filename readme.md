@@ -15,7 +15,7 @@ Estes 3 nós da rede serão denominados Usuário, Minerador e Livro para fins de
 
 Para fins de identificação de autoria, uma aplicação Usuário deve ser também capaz de gerar chaves públicas e privadas para fins de criptografia assimétrica de chave pública. Além disso, é de interesse para este Usuário consultar o histórico de todas as transações de bloco já feitas e consolidadas pela rede.
 
-![fig. 1: Esquemático da aplicação e da topologia de rede](https://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+![fig. 1: Esquemático da aplicação e da topologia de rede](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/blob/master/doc/fig1.JPG)
 
 
    Para que isso seja possível, o servidor Livro desta rede deve ser capaz de retornar ao Usuário as transações de sua autoria ou armazenar uma requisição de transação para deixar disponível para a rede inteira verificar a sua integridade e se é permitida esta transação de informação.
@@ -31,21 +31,21 @@ Para fins de identificação de autoria, uma aplicação Usuário deve ser tamb�
    
 ## Método SEND: Um método utilizado pelo nó Usuário ao enviar um bloco para o Livro.
 
-![fig. 2: Descrição do Método SEND na SBP](https://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+![fig. 2: Descrição do Método SEND na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/blob/master/doc/fig2.JPG)
 
 ## Método FETCH: Um método utilizado pelo Minerador para obter um bloco do livro e o hash do último bloco calculado nesta rede.
 
 Além disso, o servidor envia  uma chave pública para o nó minerador criptografar valores calculados para garantir a securidade da informação.
 
-![fig. 3: Descrição do Método FETCH na SBP](https://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+![fig. 3: Descrição do Método FETCH na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/blob/master/doc/fig3.JPG)
 
 ## Método LIST: Um método utilizado pelo nó Usuário ao enviar ao Livro uma requisição para listar todos os blocos transacionados.
 
 No entanto, listar uma quantidade muito grande blocos pode não caber em um único pacote. Por isso adiciona-se na resposta um atributo indicador de fragmentação “frag_flag” que é 1 quando há pacotes para vir e 0 quando se trata do último pacote.
 
-![fig. 4: Descrição do Método LIST na SBP](https://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+![fig. 4: Descrição do Método LIST na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/blob/master/doc/fig4.JPG)
 
 ## Método SOLVE: Um método utilizado pelo Minerador ao Livro para transmitir o número que resolve o bloco obtido.
 
-![fig. 5: Descrição do Método SOLVE na SBP](https://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+![fig. 5: Descrição do Método SOLVE na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/blob/master/doc/fig5.JPG)
 
