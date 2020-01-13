@@ -31,21 +31,21 @@ Para fins de identificação de autoria, uma aplicação Usuário deve ser tamb�
    
 ## Método SEND: Um método utilizado pelo nó Usuário ao enviar um bloco para o Livro.
 
-![fig. 2: Descrição do Método SEND na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig2.JPG?token=ABQFP7OYKOIA7UTSBX3VFXK53SFGA)
+![fig. 2: Descrição do Método SEND na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig2.JPG)
 
 ## Método FETCH: Um método utilizado pelo Minerador para obter um bloco do livro e o hash do último bloco calculado nesta rede.
 
 Além disso, o servidor envia  uma chave pública para o nó minerador criptografar valores calculados para garantir a securidade da informação.
 
-![fig. 3: Descrição do Método FETCH na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig3.JPG?token=ABQFP7KVAIBPUP4Q54UIVD253SFG6)
+![fig. 3: Descrição do Método FETCH na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig3.JPG)
 
 ## Método LIST: Um método utilizado pelo nó Usuário ao enviar ao Livro uma requisição para listar todos os blocos transacionados.
 
 No entanto, listar uma quantidade muito grande blocos pode não caber em um único pacote. Por isso adiciona-se na resposta um atributo indicador de fragmentação “frag_flag” que é 1 quando há pacotes para vir e 0 quando se trata do último pacote.
 
-![fig. 4: Descrição do Método LIST na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig4.JPG?token=ABQFP7LJ3PLSNY64E2LIFD253SFH2)
+![fig. 4: Descrição do Método LIST na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig4.JPG)
 
 ## Método SOLVE: Um método utilizado pelo Minerador ao Livro para transmitir o número que resolve o bloco obtido.
 
-![fig. 5: Descrição do Método SOLVE na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig5.JPG?token=ABQFP7N3YNLOR6H6MUYQDV253SFH6)
+![fig. 5: Descrição do Método SOLVE na SBP](https://raw.githubusercontent.com/90felipe09/Simple_Blockchain_Network/master/doc/fig5.JPG)
 
